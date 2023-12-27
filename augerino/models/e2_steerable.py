@@ -9,6 +9,7 @@ class SmallE2(torch.nn.Module):
 
         r2_act = gspaces.Rot2dOnR2(N=rot_n)
 
+
         self.feat_type_in = nn.FieldType(r2_act, channel_in*[r2_act.trivial_repr])
         feat_type_hid = nn.FieldType(r2_act, 8*[r2_act.regular_repr])
         feat_type_out = nn.FieldType(r2_act, 2*[r2_act.regular_repr])
