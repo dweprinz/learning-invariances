@@ -35,11 +35,11 @@ def main(args):
 
     criterion = losses.safe_unif_aug_loss
     logger = []
-    for epoch in range(args.epochs):  # loop over the dataset multiple times
+    for epoch in tqdm(range(args.epochs)):  # loop over the dataset multiple times
 
         epoch_loss = 0
         batches = 0
-        for i, data in enumerate(trainloader, 0):
+        for i, data in tqdm(enumerate(trainloader, 0)):
             # get the inputs; data is a list of [inputs, labels]
             inputs, labels = data
 
@@ -57,11 +57,15 @@ def main(args):
             optimizer.step()
             epoch_loss += loss.detach().item()
             batches += 1
-            print(epoch, loss.item(), softplus(model.aug.width).detach().data)
+            
+
+            # print(epoch, loss.item(), softplus(model.aug.width).detach().data)
             log = model.aug.width.tolist()
             log += model.aug.width.grad.data.tolist()
             log += [loss.item()]
-            logger.append(log)        
+            logger.append(log) 
+        # print every epoch
+        print(f"Epoch = {epoch}, Loss = {loss.item()}, Widths = {softplus(model.aug.width).detach().data}")       
 
     fname = "/model" + str(args.aug_reg) + ".pt"
     torch.save(model.state_dict(), args.dir + fname)

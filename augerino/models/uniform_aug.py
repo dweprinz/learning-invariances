@@ -9,9 +9,19 @@ class UniformAug(nn.Module):
                 epsilon=1e-3):
         super(UniformAug, self).__init__()
 
+        # transcale needs to be generating full invariance on translations
         self.trans_scale = trans_scale
 
-        self.width = nn.Parameter(torch.zeros(6))
+        # torch.zeros --> torch.ones
+        # fixed width parameter
+        # multiply ones with the width --> fixed interval
+        # requires_grad is false --> no gradient
+        
+        # width = theta from the paper (width of the uniform distribution)
+        
+        # self.width = nn.Parameter(torch.ones(3))
+        # full trans
+        self.width = nn.Parameter(torch.zeros(6))  # range of the uniform distribution
         self.softplus = torch.nn.Softplus()
         self.g0 = None
         self.std_batch_size = None
@@ -21,11 +31,14 @@ class UniformAug(nn.Module):
         
     def transform(self, x):
         bs, _, w, h = x.size()
+        
+        # weights are the
         weights = torch.rand(bs, 6)
         weights = weights.to(x.device, x.dtype)
         width = self.softplus(self.width)
         weights = weights * width - width.div(2.)
 
+        # create transformation generators
         generators = self.generate(weights)
 
         ## exponential map
@@ -47,31 +60,36 @@ class UniformAug(nn.Module):
         if self.g0 is None or self.std_batch_size != bs:
             self.std_batch_size = bs
 
-            ## tx
+            ## tx (translation in x)
             self.g0 = torch.zeros(3, 3, device=weights.device)
             self.g0[0, 2] = 1. * self.trans_scale
             self.g0 = self.g0.unsqueeze(-1).expand(3,3, bs)
 
-            ## ty
+            ## ty (translation in y)
             self.g1 = torch.zeros(3, 3, device=weights.device)
             self.g1[1, 2] = 1. * self.trans_scale
             self.g1 = self.g1.unsqueeze(-1).expand(3,3, bs)
 
+
+            # ## rx (rotation)
             self.g2 = torch.zeros(3, 3, device=weights.device)
             self.g2[0, 1] = -1.
             self.g2[1, 0] = 1.
             self.g2 = self.g2.unsqueeze(-1).expand(3,3, bs)
 
+            # scaling in x
             self.g3 = torch.zeros(3, 3, device=weights.device)
             self.g3[0, 0] = 1.
             self.g3[1, 1] = 1.
             self.g3 = self.g3.unsqueeze(-1).expand(3,3, bs)
 
+            # scaling in y
             self.g4 = torch.zeros(3, 3, device=weights.device)
             self.g4[0, 0] = 1.
             self.g4[1, 1] = -1.
             self.g4 = self.g4.unsqueeze(-1).expand(3,3, bs)
 
+            # shearing
             self.g5 = torch.zeros(3, 3, device=weights.device)
             self.g5[0, 1] = 1.
             self.g5[1, 0] = 1.
